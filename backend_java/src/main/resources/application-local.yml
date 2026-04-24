@@ -1,0 +1,49 @@
+# 로컬 개발 전용 (spring.profiles.active=local)
+# DB·Keycloak: infra/docker-compose.yml 기동 후 앱 실행
+# Keycloak 에 realm "everycart" 생성 후 이 issuer 와 일치해야 합니다.
+
+server:
+  port: 8080
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:5173
+
+# Keycloak Admin REST — 로컬은 master / admin-cli + admin 계정(비밀번호 grant). 운영은 서비스 계정(client_credentials) 권장.
+everycart:
+  keycloak:
+    server-url: http://localhost:8180
+    realm: everycart
+    admin-token-realm: master
+    admin-client-id: admin-cli
+    admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    user-token-client-id: ${EVERYCART_KEYCLOAK_USER_CLIENT_ID:everycart-integration-test}
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/everycart
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/everycart
+    username: everycart
+    password: everycart
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    root: INFO
+    com.everycart: DEBUG

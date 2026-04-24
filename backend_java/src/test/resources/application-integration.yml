@@ -1,0 +1,41 @@
+# 로컬 Keycloak·Postgres 없이 앱만 검증 (H2). Keycloak은 http://localhost:8180 실제 기동 필요.
+# 사전 준비:
+#   - realm: everycart
+#   - 클라이언트 everycart-integration-test: public, Direct access grants ON, Standard flow ON
+# 실행: ./gradlew integrationTest  (또는 KEYCLOAK_INTEGRATION_TESTS=true ./gradlew test 시 태그 설정에 맞게)
+
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:integration;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/everycart
+
+everycart:
+  keycloak:
+    server-url: http://localhost:8180
+    realm: everycart
+    admin-token-realm: master
+    admin-client-id: admin-cli
+    admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    user-token-client-id: ${EVERYCART_KEYCLOAK_USER_CLIENT_ID:admin-cli}
+  test:
+    keycloak-client-id: ${EVERYCART_TEST_KEYCLOAK_CLIENT_ID:admin-cli}
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
