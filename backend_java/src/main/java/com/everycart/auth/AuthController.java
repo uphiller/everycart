@@ -45,6 +45,16 @@ public class AuthController {
         return keycloakUserTokenService.issueUserToken(request);
     }
 
+    @PostMapping("/token/refresh")
+    @Operation(
+            summary = "토큰 갱신",
+            description = "Keycloak refresh_token grant — access·refresh 토큰 재발급 (클라이언트는 password 발급과 동일)")
+    @ApiResponse(responseCode = "200", description = "accessToken, refreshToken 등 반환")
+    @ApiResponse(responseCode = "401", description = "리프레시 토큰 무효·만료")
+    public TokenIssueResponse refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return keycloakUserTokenService.refreshUserToken(request);
+    }
+
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(

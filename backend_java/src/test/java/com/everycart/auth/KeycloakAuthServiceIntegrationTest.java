@@ -80,6 +80,24 @@ class KeycloakAuthServiceIntegrationTest {
 
     @Test
     @Order(3)
+    @DisplayName("KeycloakUserTokenService — refresh token 으로 재발급")
+    void refreshTokenReissues() {
+        assertThat(registeredUsername).isNotNull();
+
+        TokenIssueResponse first =
+                keycloakUserTokenService.issueUserToken(
+                        new TokenIssueRequest(registeredUsername, TEST_PASSWORD));
+        assertThat(first.refreshToken()).isNotBlank();
+
+        TokenIssueResponse second =
+                keycloakUserTokenService.refreshUserToken(
+                        new RefreshTokenRequest(first.refreshToken()));
+        assertThat(second.accessToken()).isNotBlank();
+        assertThat(second.tokenType()).isEqualToIgnoringCase("Bearer");
+    }
+
+    @Test
+    @Order(4)
     @DisplayName("KeycloakUserTokenService — 잘못된 자격증명이면 401")
     void issueTokenFailsWithBadCredentials() {
         assertThatThrownBy(
@@ -93,7 +111,7 @@ class KeycloakAuthServiceIntegrationTest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     @DisplayName("RegisterRequest — Bean Validation")
     void registerRequestValidation() {
         RegisterRequest invalid = new RegisterRequest("ab", "a@b.com", "short");
@@ -102,7 +120,7 @@ class KeycloakAuthServiceIntegrationTest {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     @DisplayName("TokenIssueRequest — Bean Validation")
     void tokenIssueRequestValidation() {
         TokenIssueRequest invalid = new TokenIssueRequest("", "x");

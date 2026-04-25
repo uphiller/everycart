@@ -20,7 +20,7 @@ everycart:
     admin-client-id: admin-cli
     admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}
     admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
-    user-token-client-id: ${EVERYCART_KEYCLOAK_USER_CLIENT_ID:everycart-integration-test}
+    user-token-client-id: ${EVERYCART_KEYCLOAK_USER_CLIENT_ID:account}
 
 spring:
   security:

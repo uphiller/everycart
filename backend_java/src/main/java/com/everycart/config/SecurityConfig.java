@@ -50,8 +50,12 @@ public class SecurityConfig {
                                         "/swagger-ui/**",
                                         "/swagger-ui.html")
                                 .permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/token")
-                                .permitAll()
+                                .requestMatchers(
+                                                HttpMethod.POST,
+                                                "/api/auth/register",
+                                                "/api/auth/token",
+                                                "/api/auth/token/refresh")
+                                        .permitAll()
                                 .requestMatchers("/api/**")
                                 .authenticated()
                                 .anyRequest()

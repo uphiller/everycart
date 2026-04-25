@@ -1,5 +1,6 @@
 package com.everycart.keycloak;
 
+import com.everycart.auth.RefreshTokenRequest;
 import com.everycart.auth.TokenIssueRequest;
 import com.everycart.auth.TokenIssueResponse;
 import feign.FeignException;
@@ -21,7 +22,16 @@ public class KeycloakUserTokenService {
     }
 
     public TokenIssueResponse issueUserToken(TokenIssueRequest request) {
-        String formBody = userTokenFormBody(request);
+        return fetchUserToken(userTokenFormBody(request), "아이디 또는 비밀번호가 올바르지 않습니다.");
+    }
+
+    public TokenIssueResponse refreshUserToken(RefreshTokenRequest request) {
+        return fetchUserToken(
+                appendClientSecretIfNeeded(refreshTokenFormBody(request)),
+                "리프레시 토큰이 유효하지 않거나 만료되었습니다.");
+    }
+
+    private TokenIssueResponse fetchUserToken(String formBody, String badRequestMessage) {
         try {
             KeycloakTokenResponse token = keycloakApiClient.fetchToken(props.realm(), formBody);
             if (token == null || token.accessToken() == null || token.accessToken().isBlank()) {
@@ -34,8 +44,7 @@ public class KeycloakUserTokenService {
             int status = e.status();
             if (status == HttpStatus.UNAUTHORIZED.value()
                     || status == HttpStatus.BAD_REQUEST.value()) {
-                throw new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.", e);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, badRequestMessage, e);
             }
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY, "Keycloak 토큰 발급에 실패했습니다.", e);
@@ -43,14 +52,32 @@ public class KeycloakUserTokenService {
     }
 
     private String userTokenFormBody(TokenIssueRequest request) {
+        return appendClientSecretIfNeeded(
+                "grant_type="
+                        + enc("password")
+                        + "&client_id="
+                        + enc(props.userTokenClientId())
+                        + "&username="
+                        + enc(request.username())
+                        + "&password="
+                        + enc(request.password()));
+    }
+
+    private String refreshTokenFormBody(RefreshTokenRequest request) {
         return "grant_type="
-                + enc("password")
+                + enc("refresh_token")
                 + "&client_id="
                 + enc(props.userTokenClientId())
-                + "&username="
-                + enc(request.username())
-                + "&password="
-                + enc(request.password());
+                + "&refresh_token="
+                + enc(request.refreshToken());
+    }
+
+    private String appendClientSecretIfNeeded(String form) {
+        String secret = props.userTokenClientSecret();
+        if (secret == null || secret.isBlank()) {
+            return form;
+        }
+        return form + "&client_secret=" + enc(secret);
     }
 
     private static String enc(String value) {
