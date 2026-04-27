@@ -1,4 +1,4 @@
-package com.everycart.auth;
+package com.everycart.auth.dto;
 
 import java.util.Set;
 

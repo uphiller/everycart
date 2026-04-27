@@ -3,6 +3,7 @@ package com.everycart.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.everycart.auth.dto.*;
 import com.everycart.keycloak.KeycloakRegistrationService;
 import com.everycart.keycloak.KeycloakUserTokenService;
 import jakarta.validation.ConstraintViolation;

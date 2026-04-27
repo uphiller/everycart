@@ -1,8 +1,8 @@
 package com.everycart.keycloak;
 
-import com.everycart.auth.RefreshTokenRequest;
-import com.everycart.auth.TokenIssueRequest;
-import com.everycart.auth.TokenIssueResponse;
+import com.everycart.auth.dto.RefreshTokenRequest;
+import com.everycart.auth.dto.TokenIssueRequest;
+import com.everycart.auth.dto.TokenIssueResponse;
 import feign.FeignException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

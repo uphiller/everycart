@@ -1,7 +1,7 @@
 package com.everycart.keycloak;
 
-import com.everycart.auth.RegisterRequest;
-import com.everycart.auth.RegisterResponse;
+import com.everycart.auth.dto.RegisterRequest;
+import com.everycart.auth.dto.RegisterResponse;
 import feign.FeignException;
 import java.net.URI;
 import java.net.URLEncoder;
