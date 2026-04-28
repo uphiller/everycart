@@ -20,7 +20,7 @@ everycart:
     admin-client-id: admin-cli
     admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}
     admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
-    user-token-client-id: ${EVERYCART_KEYCLOAK_USER_CLIENT_ID:account}
+    user-token-client-id: ${EVERYCART_KEYCLOAK_USER_CLIENT_ID:web}
 
 spring:
   security:
@@ -46,4 +46,6 @@ spring:
 logging:
   level:
     root: INFO
-    com.everycart: DEBUG
+    web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
