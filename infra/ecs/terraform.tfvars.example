@@ -1,0 +1,5 @@
+aws_region      = "us-east-1"
+project_name    = "everycart"
+container_image = "public.ecr.aws/docker/library/nginx:alpine"
+container_port  = 80
+desired_count   = 1
