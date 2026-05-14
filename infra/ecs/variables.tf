@@ -13,7 +13,7 @@ variable "project_name" {
 variable "container_image" {
   type        = string
   description = "Container image (ECR URI or Docker Hub / public ECR)."
-  default     = "public.ecr.aws/docker/library/nginx:alpine"
+  default     = "uphiller/everycart:front"
 }
 
 variable "container_port" {
