@@ -96,7 +96,7 @@ resource "aws_ecs_service" "main" {
     container_port   = var.container_port
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [aws_lb_listener.http, aws_lb_listener_rule.ecs_host]
 
   tags = {
     Name = "${local.name}-service"

@@ -49,11 +49,12 @@ resource "aws_security_group" "ecs_tasks" {
 }
 
 resource "aws_lb" "main" {
-  name               = "${local.name}-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = aws_subnet.public[*].id
+  name                 = "${local.name}-alb"
+  internal             = false
+  load_balancer_type   = "application"
+  security_groups      = [aws_security_group.alb.id]
+  subnets              = aws_subnet.public[*].id
+  preserve_host_header = true
 
   tags = {
     Name = "${local.name}-alb"
@@ -87,7 +88,27 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not Found"
+      status_code  = "404"
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "ecs_host" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.main.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.alb_host_header]
+    }
   }
 }

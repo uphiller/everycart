@@ -45,3 +45,9 @@ variable "vpc_cidr" {
   description = "CIDR for the VPC."
   default     = "10.0.0.0/16"
 }
+
+variable "alb_host_header" {
+  type        = string
+  description = "Host header for ALB listener rule; only this Host is forwarded to ECS."
+  default     = "everycart.bettercodelab.com"
+}
