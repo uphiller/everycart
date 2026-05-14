@@ -36,6 +36,14 @@ resource "aws_security_group" "ecs_tasks" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  ingress {
+    description     = "From ALB (Keycloak)"
+    from_port       = var.keycloak_container_port
+    to_port         = var.keycloak_container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -49,11 +57,12 @@ resource "aws_security_group" "ecs_tasks" {
 }
 
 resource "aws_lb" "main" {
-  name               = "${local.name}-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = aws_subnet.public[*].id
+  name                 = "${local.name}-alb"
+  internal             = false
+  load_balancer_type   = "application"
+  security_groups      = [aws_security_group.alb.id]
+  subnets              = aws_subnet.public[*].id
+  preserve_host_header = true
 
   tags = {
     Name = "${local.name}-alb"
@@ -87,7 +96,65 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not Found"
+      status_code  = "404"
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "ecs_host" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.main.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.alb_host_header]
+    }
+  }
+}
+
+resource "aws_lb_target_group" "keycloak" {
+  name        = "${local.name}-keycloak-tg"
+  port        = var.keycloak_container_port
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  # Keycloak 26.x: /health/ready is not served on the public HTTP port (404) — use a path that returns 200.
+  health_check {
+    path                = "/realms/master"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    matcher             = "200"
+  }
+
+  tags = {
+    Name = "${local.name}-keycloak-tg"
+  }
+}
+
+resource "aws_lb_listener_rule" "keycloak_host" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 101
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.keycloak.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.keycloak_host_header]
+    }
   }
 }

@@ -3,3 +3,5 @@ project_name    = "everycart"
 container_image = "uphiller/everycart:front"
 container_port  = 80
 desired_count   = 1
+
+# keycloak_admin_password = "set-in-secrets-not-in-git"

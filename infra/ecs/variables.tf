@@ -45,3 +45,58 @@ variable "vpc_cidr" {
   description = "CIDR for the VPC."
   default     = "10.0.0.0/16"
 }
+
+variable "alb_host_header" {
+  type        = string
+  description = "Host header for ALB listener rule; only this Host is forwarded to ECS."
+  default     = "everycart.bettercodelab.com"
+}
+
+variable "keycloak_container_image" {
+  type        = string
+  description = "Keycloak container image."
+  default     = "quay.io/keycloak/keycloak:26.6.1"
+}
+
+variable "keycloak_host_header" {
+  type        = string
+  description = "Host header for Keycloak ALB listener rule."
+  default     = "auth.bettercodelab.com"
+}
+
+variable "keycloak_container_port" {
+  type        = number
+  description = "Port Keycloak listens on inside the container."
+  default     = 8080
+}
+
+variable "keycloak_task_cpu" {
+  type        = number
+  description = "Fargate CPU units for Keycloak task."
+  default     = 512
+}
+
+variable "keycloak_task_memory" {
+  type        = number
+  description = "Fargate memory (MB) for Keycloak task."
+  default     = 1024
+}
+
+variable "keycloak_desired_count" {
+  type        = number
+  description = "Desired task count for Keycloak ECS service."
+  default     = 1
+}
+
+variable "keycloak_admin_username" {
+  type        = string
+  description = "Keycloak initial admin username (start-dev)."
+  default     = "admin"
+}
+
+variable "keycloak_admin_password" {
+  type        = string
+  description = "Keycloak initial admin password (start-dev). Override via tfvars; do not commit real secrets."
+  sensitive   = true
+  default     = "ChangeMeBeforeApply"
+}
