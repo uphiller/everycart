@@ -60,8 +60,14 @@ variable "keycloak_container_image" {
 
 variable "keycloak_host_header" {
   type        = string
-  description = "Host header for Keycloak ALB listener rule."
+  description = "Hostname for Keycloak (no scheme): ALB listener rule host condition and KC_HOSTNAME base http://<this> for ALB HTTP-only."
   default     = "auth.bettercodelab.com"
+}
+
+variable "keycloak_http_enabled" {
+  type        = bool
+  description = "Expose Keycloak HTTP listener (KC_HTTP_ENABLED). Must be true when the ALB targets Keycloak over HTTP."
+  default     = true
 }
 
 variable "keycloak_container_port" {
@@ -96,7 +102,50 @@ variable "keycloak_admin_username" {
 
 variable "keycloak_admin_password" {
   type        = string
-  description = "Keycloak initial admin password (start-dev). Override via tfvars; do not commit real secrets."
+  description = "Keycloak admin bootstrap password used when keycloak_admin_password_secret_arn is empty. Prefer server-local tfvars or ECS secrets ARN."
   sensitive   = true
   default     = "ChangeMeBeforeApply"
+}
+
+variable "keycloak_admin_password_secret_arn" {
+  type        = string
+  description = "If non-empty, KEYCLOAK_ADMIN_PASSWORD is injected from this SSM parameter or Secrets Manager secret ARN (ECS execution role receives GetSecretValue / GetParameters)."
+  default     = ""
+}
+
+variable "keycloak_container_command" {
+  type        = list(string)
+  description = "Keycloak JVM mode args after image entrypoint: default embedded dev DB; use start / start --optimized with external Postgres (KC_DB_*)."
+  default     = ["start-dev"]
+}
+
+variable "keycloak_db_kind" {
+  type        = string
+  description = "KC_DB vendor when using external JDBC."
+  default     = "postgres"
+}
+
+variable "keycloak_db_url" {
+  type        = string
+  description = "JDBC URL (e.g. jdbc:postgresql://host:5432/keycloak); leave empty for start-dev embedded store."
+  default     = ""
+}
+
+variable "keycloak_db_username" {
+  type        = string
+  description = "Database username when external DB is configured."
+  default     = ""
+}
+
+variable "keycloak_db_password" {
+  type        = string
+  description = "Database password used when KC_DB_PASSWORD is set from Terraform (omit when keycloak_db_password_secret_arn is set)."
+  sensitive   = true
+  default     = ""
+}
+
+variable "keycloak_db_password_secret_arn" {
+  type        = string
+  description = "If external DB enabled, inject KC_DB_PASSWORD from this SSM or Secrets Manager ARN instead of keycloak_db_password."
+  default     = ""
 }

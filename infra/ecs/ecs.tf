@@ -42,6 +42,46 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "ecs_task_execution_keycloak_secrets" {
+  count = length(local.keycloak_execution_secret_arns) > 0 ? 1 : 0
+  name  = "${local.name}-ecs-exec-keycloak-secrets"
+  role  = aws_iam_role.ecs_task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      length(local.keycloak_execution_sm_arns) > 0 ? [
+        {
+          Effect   = "Allow"
+          Action   = ["secretsmanager:GetSecretValue"]
+          Resource = local.keycloak_execution_sm_arns
+        }
+      ] : [],
+      length(local.keycloak_execution_ssm_arns) > 0 ? [
+        {
+          Effect   = "Allow"
+          Action   = ["ssm:GetParameters"]
+          Resource = local.keycloak_execution_ssm_arns
+        }
+      ] : [],
+    )
+  })
+
+  lifecycle {
+    precondition {
+      condition     = length(local.keycloak_execution_sm_arns) > 0 || length(local.keycloak_execution_ssm_arns) > 0
+      error_message = "keycloak_admin_password_secret_arn and keycloak_db_password_secret_arn must be arn:aws:secretsmanager:... or arn:aws:ssm:... so the execution role can read them."
+    }
+  }
+}
+
+check "keycloak_db_username_when_jdbc" {
+  assert {
+    condition     = trimspace(var.keycloak_db_url) == "" || trimspace(var.keycloak_db_username) != ""
+    error_message = "Set keycloak_db_username when keycloak_db_url is non-empty."
+  }
+}
+
 resource "aws_ecs_task_definition" "main" {
   family                   = "${local.name}-task"
   network_mode             = "awsvpc"
@@ -111,36 +151,7 @@ resource "aws_ecs_task_definition" "keycloak" {
   memory                   = var.keycloak_task_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
 
-  container_definitions = jsonencode([
-    {
-      name      = "${local.name}-keycloak"
-      image     = var.keycloak_container_image
-      essential = true
-      command   = ["start-dev"]
-      portMappings = [
-        {
-          containerPort = var.keycloak_container_port
-          protocol      = "tcp"
-        }
-      ]
-      environment = [
-        { name = "KC_HTTP_ENABLED", value = "true" },
-        { name = "KC_PROXY_HEADERS", value = "xforwarded" },
-        { name = "KC_HOSTNAME", value = var.keycloak_host_header },
-        { name = "KC_HOSTNAME_STRICT", value = "false" },
-        { name = "KEYCLOAK_ADMIN", value = var.keycloak_admin_username },
-        { name = "KEYCLOAK_ADMIN_PASSWORD", value = var.keycloak_admin_password },
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "keycloak"
-        }
-      }
-    }
-  ])
+  container_definitions = jsonencode([local.keycloak_container_definition])
 
   tags = {
     Name = "${local.name}-keycloak-task"

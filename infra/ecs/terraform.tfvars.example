@@ -1,7 +1,46 @@
+# -----------------------------------------------------------------------------
+# 예시 변수 — 실 값은 저장소 밖(server 전용 디렉터리) 에 두거나,
+# 필요할 때 여러 번 -var-file 로 합치면 됩니다.
+#
+# 적용 예 (배포 서버에서 infra/ecs 로 이동한 뒤):
+#   terraform init
+#   terraform apply -var-file=terraform.tfvars -var-file=/secure/everycart-keycloak.secrets.tfvars
+#
+# Git 에 올리지 말 파일: infra/ecs/terraform.tfvars, infra/ecs/*.secrets.tfvars 등
+# (루트 .gitignore 참고)
+# -----------------------------------------------------------------------------
 aws_region      = "us-east-1"
 project_name    = "everycart"
 container_image = "uphiller/everycart:front"
 container_port  = 80
 desired_count   = 1
 
-# keycloak_admin_password = "set-in-secrets-not-in-git"
+# -----------------------------------------------------------------------------
+# Keycloak — 공개에 가까운 옵션
+# -----------------------------------------------------------------------------
+# keycloak_host_header = "auth.example.com"   # ALB host 조건 + KC_HOSTNAME → http://auth.example.com (ALB HTTP 전용)
+# keycloak_http_enabled = true                 # ALB→컨테이너 HTTP 면 true
+
+# 시작 모드 / 외부 DB
+# Embedded H2 개발 모드(default):
+#   keycloak_container_command = ["start-dev"]
+# 운영 + 외부 Postgres 예:
+#   keycloak_container_command = ["start", "--optimized"]
+
+# -----------------------------------------------------------------------------
+# 비밀 — 서버 로컬 tfvars 또는 TF_VAR_keycloak_* 등으로만 설정 (커밋 금지)
+# -----------------------------------------------------------------------------
+# keycloak_admin_username  = "admin"
+# keycloak_admin_password = "REPLACE_ME"
+
+# 비밀을 Terraform 변수 대신 ECS 가 SSM/Secrets Manager 에서 주입하게 하려면
+# ARN 을 채우고, 아래에 해당 변수는 두지 마세요(SECRETS 쪽 참고).
+# keycloak_admin_password_secret_arn = "arn:aws:ssm:REGION:ACCOUNT:parameter/keycloak/admin-password"
+# keycloak_db_password_secret_arn    = "arn:aws:secretsmanager:REGION:ACCOUNT:secret:keycloak/db-xxx"
+
+# -----------------------------------------------------------------------------
+# 외부 Postgres — keycloak_container_command 에 start/start --optimized 필요
+# keycloak_db_url       = "jdbc:postgresql://host.example.com:5432/keycloak"
+# keycloak_db_username  = "keycloak"
+# keycloak_db_password  = "REPLACE_ME_OR_USE_DB_SECRET_ARN"
+# keycloak_db_kind      = "postgres"

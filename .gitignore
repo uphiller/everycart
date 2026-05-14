@@ -1,1 +1,9 @@
 **/.terraform/
+
+# Terraform state — kept on this machine only (not committed)
+*.tfstate
+*.tfstate.*
+
+# infra/ecs: local Terraform vars (often secrets); commit only terraform.tfvars.example
+infra/ecs/terraform.tfvars
+infra/ecs/*.secrets.tfvars
