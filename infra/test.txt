@@ -1,1 +1,1 @@
-https://cursor.com/loginDeepControl?challenge=yLHhBXaQvLX2fp6j-GesyDBH52NyLpmngyRHqZiBaO0&uuid=3b423388-38d0-473d-9332-ecdc6f363117&mode=login&redirectTarget=cli
+https://cursor.com/loginDeepControl?challenge=KcZ4AeAWhz_n3Ep7CzdGf0WdGcGY2V-2CP7g6Jn65L8&uuid=4cf1f09a-3640-4c99-874c-ad40dd6ec0e5&mode=login&redirectTarget=cli
