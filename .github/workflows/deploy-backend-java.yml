@@ -1,0 +1,99 @@
+# Builds the Spring Boot backend Docker image, pushes to Docker Hub, and deploys to ECS.
+#
+# Secrets:
+#   DOCKER_USERNAME, DOCKER_TOKEN — Docker Hub (hub.docker.com → Account Settings → Security)
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY — IAM user with ecs:UpdateService on the backend service
+#
+# Optional variables:
+#   DOCKER_IMAGE (default uphiller/everycart)
+#   DOCKER_TAG (default backend_java)
+#   AWS_REGION (default ap-northeast-2)
+#   ECS_CLUSTER (default everycart-cluster)
+#   ECS_SERVICE (default everycart-backend-service)
+#   DEPLOY_BACKEND_TO_ECS (set to true when backend ECS service exists; default skips deploy)
+
+name: Backend Java — Docker build & deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend_java/**"
+      - ".github/workflows/deploy-backend-java.yml"
+  pull_request:
+    paths:
+      - "backend_java/**"
+      - ".github/workflows/deploy-backend-java.yml"
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE != '' && vars.DOCKER_IMAGE || 'uphiller/everycart' }}
+  DOCKER_TAG: ${{ vars.DOCKER_TAG != '' && vars.DOCKER_TAG || 'backend_java' }}
+  AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'ap-northeast-2' }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER != '' && vars.ECS_CLUSTER || 'everycart-cluster' }}
+  ECS_SERVICE: ${{ vars.ECS_BACKEND_SERVICE != '' && vars.ECS_BACKEND_SERVICE || vars.ECS_SERVICE != '' && vars.ECS_SERVICE || 'everycart-backend-service' }}
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (validation only)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend_java
+          push: false
+          tags: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend_java
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+
+  deploy:
+    needs: docker
+    if: github.event_name != 'pull_request' && vars.DEPLOY_BACKEND_TO_ECS == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --force-new-deployment \
+            --region "$AWS_REGION"
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --region "$AWS_REGION"
