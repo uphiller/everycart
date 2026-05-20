@@ -1,9 +1,17 @@
-# Builds the Vite frontend Docker image and pushes to Docker Hub.
+# Builds the Vite frontend Docker image, pushes to Docker Hub, and deploys to ECS.
 #
-# Secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN (access token from hub.docker.com → Account Settings → Security)
-# Optional variables: DOCKER_IMAGE (namespace/repo), DOCKER_TAG (default image: uphiller/everycart:front)
+# Secrets:
+#   DOCKER_USERNAME, DOCKER_TOKEN — Docker Hub (hub.docker.com → Account Settings → Security)
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY — IAM user with ecs:UpdateService on the frontend service
+#
+# Optional variables:
+#   DOCKER_IMAGE (default uphiller/everycart)
+#   DOCKER_TAG (default front)
+#   AWS_REGION (default ap-northeast-2)
+#   ECS_CLUSTER (default everycart-cluster)
+#   ECS_SERVICE (default everycart-service)
 
-name: Frontend — Docker build & push
+name: Frontend — Docker build & deploy
 
 on:
   push:
@@ -20,6 +28,9 @@ on:
 env:
   DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE != '' && vars.DOCKER_IMAGE || 'uphiller/everycart' }}
   DOCKER_TAG: ${{ vars.DOCKER_TAG != '' && vars.DOCKER_TAG || 'front' }}
+  AWS_REGION: ${{ vars.AWS_REGION != '' && vars.AWS_REGION || 'ap-northeast-2' }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER != '' && vars.ECS_CLUSTER || 'everycart-cluster' }}
+  ECS_SERVICE: ${{ vars.ECS_SERVICE != '' && vars.ECS_SERVICE || 'everycart-service' }}
 
 jobs:
   docker:
@@ -57,3 +68,31 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+
+  deploy:
+    needs: docker
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --force-new-deployment \
+            --region "$AWS_REGION"
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --region "$AWS_REGION"

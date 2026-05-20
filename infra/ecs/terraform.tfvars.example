@@ -41,11 +41,15 @@ desired_count   = 1
 # keycloak_host_header = "auth.example.com"   # ALB host 조건 + KC_HOSTNAME / KC_HOSTNAME_ADMIN → https://auth.example.com
 # keycloak_http_enabled = true                 # ALB→컨테이너 HTTP 면 true
 
-# 시작 모드 / 외부 DB
-# Embedded H2 개발 모드(default):
+# 시작 모드 / DB (variables.tf 기본값: Supabase Postgres + start)
+# keycloak_container_command = ["start"]
+# keycloak_db_url      = "jdbc:postgresql://db.<project-ref>.supabase.co:5432/keycloak?sslmode=require"
+# keycloak_db_username = "postgres"
+# keycloak_db_kind     = "postgres"
+#
+# 내장 H2 로 되돌리려면:
+#   keycloak_db_url = ""
 #   keycloak_container_command = ["start-dev"]
-# 운영 + 외부 Postgres 예:
-#   keycloak_container_command = ["start", "--optimized"]
 
 # -----------------------------------------------------------------------------
 # 비밀 — 서버 로컬 tfvars 또는 TF_VAR_keycloak_* 등으로만 설정 (커밋 금지)
@@ -58,9 +62,6 @@ desired_count   = 1
 # keycloak_admin_password_secret_arn = "arn:aws:ssm:REGION:ACCOUNT:parameter/keycloak/admin-password"
 # keycloak_db_password_secret_arn    = "arn:aws:secretsmanager:REGION:ACCOUNT:secret:keycloak/db-xxx"
 
-# -----------------------------------------------------------------------------
-# 외부 Postgres — keycloak_container_command 에 start/start --optimized 필요
-# keycloak_db_url       = "jdbc:postgresql://host.example.com:5432/keycloak"
-# keycloak_db_username  = "keycloak"
-# keycloak_db_password  = "REPLACE_ME_OR_USE_DB_SECRET_ARN"
-# keycloak_db_kind      = "postgres"
+# DB 비밀번호 — keycloak.secrets.tfvars (gitignore) 에만:
+#   keycloak_db_password = "REPLACE_ME"
+# 또는 keycloak_db_password_secret_arn

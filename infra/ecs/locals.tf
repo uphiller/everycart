@@ -20,6 +20,9 @@ locals {
   # KC_HOSTNAME_ADMIN fixes Admin Console /resources/* being emitted as http:// (Mixed Content).
   keycloak_hostname_url = "https://${var.keycloak_host_header}"
 
+  # Supabase / external Postgres: production start; start-dev ignores KC_DB_*.
+  keycloak_container_command_effective = trimspace(var.keycloak_db_url) != "" && var.keycloak_container_command == ["start-dev"] ? ["start"] : var.keycloak_container_command
+
   keycloak_execution_secret_arns = distinct(compact([
     var.keycloak_admin_password_secret_arn,
     var.keycloak_db_password_secret_arn,
@@ -96,7 +99,7 @@ locals {
       name      = "${local.name}-keycloak"
       image     = var.keycloak_container_image
       essential = true
-      command   = var.keycloak_container_command
+      command   = local.keycloak_container_command_effective
       portMappings = [
         {
           containerPort = var.keycloak_container_port

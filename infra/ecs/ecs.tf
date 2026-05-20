@@ -82,6 +82,20 @@ check "keycloak_db_username_when_jdbc" {
   }
 }
 
+check "keycloak_db_password_when_jdbc" {
+  assert {
+    condition = trimspace(var.keycloak_db_url) == "" || trimspace(var.keycloak_db_password_secret_arn) != "" || trimspace(var.keycloak_db_password) != ""
+    error_message = "Set keycloak_db_password or keycloak_db_password_secret_arn when keycloak_db_url is non-empty."
+  }
+}
+
+check "keycloak_start_mode_when_jdbc" {
+  assert {
+    condition     = trimspace(var.keycloak_db_url) == "" || var.keycloak_container_command != ["start-dev"]
+    error_message = "Use keycloak_container_command = [\"start\"] (not start-dev) when keycloak_db_url is set."
+  }
+}
+
 resource "aws_ecs_task_definition" "main" {
   family                   = "${local.name}-task"
   network_mode             = "awsvpc"

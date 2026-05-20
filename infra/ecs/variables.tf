@@ -151,8 +151,8 @@ variable "keycloak_admin_password_secret_arn" {
 
 variable "keycloak_container_command" {
   type        = list(string)
-  description = "Keycloak JVM mode args after image entrypoint: default embedded dev DB; use start / start --optimized with external Postgres (KC_DB_*)."
-  default     = ["start-dev"]
+  description = "Keycloak JVM mode args after image entrypoint: start-dev for embedded H2; start (or start --optimized on a pre-built image) with external Postgres (KC_DB_*)."
+  default     = ["start"]
 }
 
 variable "keycloak_db_kind" {
@@ -163,14 +163,14 @@ variable "keycloak_db_kind" {
 
 variable "keycloak_db_url" {
   type        = string
-  description = "JDBC URL (e.g. jdbc:postgresql://host:5432/keycloak); leave empty for start-dev embedded store."
-  default     = ""
+  description = "JDBC URL for external Postgres (e.g. Supabase); leave empty only with start-dev embedded store."
+  default     = "jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"
 }
 
 variable "keycloak_db_username" {
   type        = string
   description = "Database username when external DB is configured."
-  default     = ""
+  default     = "postgres.jsadkloxgwvzucualbje"
 }
 
 variable "keycloak_db_password" {
