@@ -52,6 +52,42 @@ variable "alb_host_header" {
   default     = "everycart.bettercodelab.com"
 }
 
+variable "enable_https" {
+  type        = bool
+  description = "Enable HTTPS (443) on the ALB with an ACM certificate. HTTP redirects to HTTPS when true."
+  default     = true
+}
+
+variable "acm_certificate_arn" {
+  type        = string
+  description = "Existing issued ACM certificate ARN in the ALB region. If empty and enable_https is true, Terraform requests a new certificate for alb/keycloak host headers."
+  default     = ""
+}
+
+variable "acm_primary_domain" {
+  type        = string
+  description = "Primary domain on the ACM certificate. Defaults to alb_host_header when empty."
+  default     = ""
+}
+
+variable "route53_zone_id" {
+  type        = string
+  description = "Route 53 hosted zone ID for ACM DNS validation (optional). Leave empty when DNS is on Cloudflare or another provider; use output cloudflare_dns_setup instead."
+  default     = ""
+}
+
+variable "create_route53_alias_records" {
+  type        = bool
+  description = "Create Route 53 A alias records for alb_host_header and keycloak_host_header (only if route53_zone_id is set). Not used with Cloudflare DNS."
+  default     = false
+}
+
+variable "alb_ssl_policy" {
+  type        = string
+  description = "SSL policy for the ALB HTTPS listener."
+  default     = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+}
+
 variable "keycloak_container_image" {
   type        = string
   description = "Keycloak container image."
@@ -60,7 +96,7 @@ variable "keycloak_container_image" {
 
 variable "keycloak_host_header" {
   type        = string
-  description = "Hostname for Keycloak (no scheme): ALB listener rule host condition and KC_HOSTNAME base http://<this> for ALB HTTP-only."
+  description = "Hostname for Keycloak (no scheme): ALB listener rule host condition; KC_HOSTNAME and KC_HOSTNAME_ADMIN are set to https://<this>."
   default     = "auth.bettercodelab.com"
 }
 

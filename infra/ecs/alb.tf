@@ -1,6 +1,6 @@
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb-sg"
-  description = "Allow HTTP to ALB"
+  description = "Allow HTTP/HTTPS to ALB"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -9,6 +9,17 @@ resource "aws_security_group" "alb" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  dynamic "ingress" {
+    for_each = var.enable_https ? [1] : []
+    content {
+      description = "HTTPS"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
 
   egress {
@@ -96,6 +107,38 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
+    type = var.enable_https ? "redirect" : "fixed-response"
+
+    dynamic "redirect" {
+      for_each = var.enable_https ? [1] : []
+      content {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+
+    dynamic "fixed_response" {
+      for_each = var.enable_https ? [] : [1]
+      content {
+        content_type = "text/plain"
+        message_body = "Not Found"
+        status_code  = "404"
+      }
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  count = var.enable_https ? 1 : 0
+
+  load_balancer_arn = aws_lb.main.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = var.alb_ssl_policy
+  certificate_arn   = local.alb_certificate_arn
+
+  default_action {
     type = "fixed-response"
     fixed_response {
       content_type = "text/plain"
@@ -103,10 +146,12 @@ resource "aws_lb_listener" "http" {
       status_code  = "404"
     }
   }
+
+  depends_on = [aws_acm_certificate_validation.main]
 }
 
 resource "aws_lb_listener_rule" "ecs_host" {
-  listener_arn = aws_lb_listener.http.arn
+  listener_arn = local.alb_listener_arn
   priority     = 100
 
   action {
@@ -144,7 +189,7 @@ resource "aws_lb_target_group" "keycloak" {
 }
 
 resource "aws_lb_listener_rule" "keycloak_host" {
-  listener_arn = aws_lb_listener.http.arn
+  listener_arn = local.alb_listener_arn
   priority     = 101
 
   action {

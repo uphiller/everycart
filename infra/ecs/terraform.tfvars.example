@@ -16,9 +16,29 @@ container_port  = 80
 desired_count   = 1
 
 # -----------------------------------------------------------------------------
+# ALB HTTPS (ACM) — DNS 가 Cloudflare 인 경우 (route53 변수 비움)
+# -----------------------------------------------------------------------------
+# enable_https = true
+# route53_zone_id = ""   # Cloudflare 사용 시 비워 둠
+# acm_certificate_arn = ""   # 이미 발급·검증된 ACM ARN 이 있으면 지정 가능
+#
+# 1) terraform apply -target=aws_acm_certificate.main[0]
+# 2) terraform output cloudflare_dns_setup → acm_validation CNAME 을 Cloudflare 에 추가
+#    - Proxy: DNS only (회색 구름) — ACM 검증용
+# 3) ACM 콘솔에서 인증서 상태 ISSUED 확인
+# 4) Cloudflare 에 origin CNAME 추가 (output 의 origin, Proxy: Proxied 권장)
+#    - everycart / auth → alb_dns_name (terraform output alb_dns_name)
+# 5) Cloudflare SSL/TLS → Full (strict)  (방문자↔CF 는 CF 인증서, CF↔ALB 는 ACM)
+# 6) terraform apply  (HTTPS 리스너·리다이렉트 완료)
+#
+# Route 53 을 쓰는 경우에만:
+# route53_zone_id = "Z..."
+# create_route53_alias_records = true
+
+# -----------------------------------------------------------------------------
 # Keycloak — 공개에 가까운 옵션
 # -----------------------------------------------------------------------------
-# keycloak_host_header = "auth.example.com"   # ALB host 조건 + KC_HOSTNAME → http://auth.example.com (ALB HTTP 전용)
+# keycloak_host_header = "auth.example.com"   # ALB host 조건 + KC_HOSTNAME / KC_HOSTNAME_ADMIN → https://auth.example.com
 # keycloak_http_enabled = true                 # ALB→컨테이너 HTTP 면 true
 
 # 시작 모드 / 외부 DB
