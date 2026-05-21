@@ -211,7 +211,7 @@ variable "backend_host_header" {
 variable "backend_container_port" {
   type        = number
   description = "Port the Spring Boot app listens on inside the container."
-  default     = 8080
+  default     = 8081
 }
 
 variable "backend_task_cpu" {

@@ -3,7 +3,7 @@
 # Keycloak 에 realm "everycart" 생성 후 이 issuer 와 일치해야 합니다.
 
 server:
-  port: 8080
+  port: 8081
 
 app:
   cors:
