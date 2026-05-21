@@ -61,3 +61,10 @@ output "backend_host_header" {
   description = "Public hostname for the Spring API (ALB host rule)."
   value       = var.backend_host_header
 }
+
+output "frontend_runtime_config" {
+  description = "Runtime config injected into the frontend container (config.js)."
+  value = {
+    API_BASE_URL = local.frontend_api_base_url
+  }
+}

@@ -1,8 +1,7 @@
 import { clearAuth, getAccessToken } from '../lib/authStorage';
+import { apiBaseUrl } from '../lib/runtimeConfig';
 
-const baseUrl =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
-  'http://localhost:8080';
+const baseUrl = apiBaseUrl();
 
 export type CartItemDto = {
   productId: string;

@@ -195,4 +195,10 @@ locals {
     },
     length(local.backend_ecs_secrets) > 0 ? { secrets = local.backend_ecs_secrets } : {},
   )
+
+  frontend_api_base_url = "https://${var.backend_host_header}"
+
+  frontend_ecs_plain_env = [
+    { name = "API_BASE_URL", value = local.frontend_api_base_url },
+  ]
 }

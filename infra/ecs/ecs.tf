@@ -115,6 +115,7 @@ resource "aws_ecs_task_definition" "main" {
           protocol      = "tcp"
         }
       ]
+      environment = local.frontend_ecs_plain_env
       logConfiguration = {
         logDriver = "awslogs"
         options = {
