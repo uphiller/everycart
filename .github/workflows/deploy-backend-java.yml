@@ -9,8 +9,7 @@
 #   DOCKER_TAG (default backend_java)
 #   AWS_REGION (default ap-northeast-2)
 #   ECS_CLUSTER (default everycart-cluster)
-#   ECS_SERVICE (default everycart-backend-service)
-#   DEPLOY_BACKEND_TO_ECS (set to true when backend ECS service exists; default skips deploy)
+#   ECS_BACKEND_SERVICE (default everycart-backend-service)
 
 name: Backend Java — Docker build & deploy
 
@@ -72,7 +71,7 @@ jobs:
 
   deploy:
     needs: docker
-    if: github.event_name != 'pull_request' && vars.DEPLOY_BACKEND_TO_ECS == 'true'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
