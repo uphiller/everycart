@@ -173,6 +173,12 @@ variable "keycloak_db_username" {
   default     = "postgres.jsadkloxgwvzucualbje"
 }
 
+variable "keycloak_db_schema" {
+  type        = string
+  description = "PostgreSQL schema for Keycloak tables (KC_DB_SCHEMA). Applied only when keycloak_db_url is set."
+  default     = "keycloak"
+}
+
 variable "keycloak_db_password" {
   type        = string
   description = "Database password used when KC_DB_PASSWORD is set from Terraform (omit when keycloak_db_password_secret_arn is set)."
@@ -183,5 +189,76 @@ variable "keycloak_db_password" {
 variable "keycloak_db_password_secret_arn" {
   type        = string
   description = "If external DB enabled, inject KC_DB_PASSWORD from this SSM or Secrets Manager ARN instead of keycloak_db_password."
+  default     = ""
+}
+
+# -----------------------------------------------------------------------------
+# Spring Boot backend (backend_java)
+# -----------------------------------------------------------------------------
+
+variable "backend_container_image" {
+  type        = string
+  description = "Backend Java container image (Docker Hub tag from deploy-backend-java workflow)."
+  default     = "uphiller/everycart:backend_java"
+}
+
+variable "backend_host_header" {
+  type        = string
+  description = "Hostname for the Spring API (no scheme): ALB listener rule host condition."
+  default     = "api.bettercodelab.com"
+}
+
+variable "backend_container_port" {
+  type        = number
+  description = "Port the Spring Boot app listens on inside the container."
+  default     = 8080
+}
+
+variable "backend_task_cpu" {
+  type        = number
+  description = "Fargate CPU units for the backend task."
+  default     = 512
+}
+
+variable "backend_task_memory" {
+  type        = number
+  description = "Fargate memory (MB) for the backend task."
+  default     = 1024
+}
+
+variable "backend_desired_count" {
+  type        = number
+  description = "Desired task count for the backend ECS service."
+  default     = 1
+}
+
+variable "backend_spring_profiles_active" {
+  type        = string
+  description = "SPRING_PROFILES_ACTIVE for the backend container (application-<profile>.yml)."
+  default     = "dev"
+}
+
+variable "backend_keycloak_user_client_id" {
+  type        = string
+  description = "EVERYCART_KEYCLOAK_USER_CLIENT_ID — Keycloak public client for password grant."
+  default     = "web"
+}
+
+variable "backend_db_password" {
+  type        = string
+  description = "Postgres password for backend when backend_db_password_secret_arn is empty. Falls back to keycloak_db_password when both backend fields are empty."
+  sensitive   = true
+  default     = ""
+}
+
+variable "backend_db_password_secret_arn" {
+  type        = string
+  description = "Inject backend_java_db_password from SSM or Secrets Manager. When empty, uses keycloak_db_password_secret_arn if set."
+  default     = ""
+}
+
+variable "backend_keycloak_admin_password_secret_arn" {
+  type        = string
+  description = "Inject KEYCLOAK_ADMIN_PASSWORD for backend Keycloak Admin API. When empty, uses keycloak_admin_password_secret_arn if set."
   default     = ""
 }

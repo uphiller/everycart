@@ -46,6 +46,7 @@ desired_count   = 1
 # keycloak_db_url      = "jdbc:postgresql://db.<project-ref>.supabase.co:5432/keycloak?sslmode=require"
 # keycloak_db_username = "postgres"
 # keycloak_db_kind     = "postgres"
+# keycloak_db_schema   = "keycloak"   # KC_DB_SCHEMA (default in variables.tf)
 #
 # 내장 H2 로 되돌리려면:
 #   keycloak_db_url = ""
@@ -65,3 +66,18 @@ desired_count   = 1
 # DB 비밀번호 — keycloak.secrets.tfvars (gitignore) 에만:
 #   keycloak_db_password = "REPLACE_ME"
 # 또는 keycloak_db_password_secret_arn
+
+# -----------------------------------------------------------------------------
+# Spring Boot backend (backend_java)
+# -----------------------------------------------------------------------------
+# backend_host_header = "api.example.com"
+# backend_container_image = "uphiller/everycart:backend_java"
+# backend_spring_profiles_active = "dev"
+# backend_keycloak_user_client_id = "web"
+#
+# DB / Keycloak admin 비밀번호는 keycloak 과 동일 Supabase·Keycloak 을 쓰면
+# keycloak_* secret ARN 만으로 충분합니다 (backend_* ARN 은 비워 둠).
+# backend_db_password_secret_arn = ""
+# backend_keycloak_admin_password_secret_arn = ""
+#
+# 별도 secret 을 쓰려면 backend.secrets.tfvars (gitignore) 참고.

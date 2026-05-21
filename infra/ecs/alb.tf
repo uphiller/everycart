@@ -55,6 +55,14 @@ resource "aws_security_group" "ecs_tasks" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  ingress {
+    description     = "From ALB (Backend)"
+    from_port       = var.backend_container_port
+    to_port         = var.backend_container_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -200,6 +208,43 @@ resource "aws_lb_listener_rule" "keycloak_host" {
   condition {
     host_header {
       values = [var.keycloak_host_header]
+    }
+  }
+}
+
+resource "aws_lb_target_group" "backend" {
+  name        = "${local.name}-backend-tg"
+  port        = var.backend_container_port
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/actuator/health"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    matcher             = "200"
+  }
+
+  tags = {
+    Name = "${local.name}-backend-tg"
+  }
+}
+
+resource "aws_lb_listener_rule" "backend_host" {
+  listener_arn = local.alb_listener_arn
+  priority     = 102
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.backend_host_header]
     }
   }
 }

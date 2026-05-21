@@ -42,26 +42,26 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-resource "aws_iam_role_policy" "ecs_task_execution_keycloak_secrets" {
-  count = length(local.keycloak_execution_secret_arns) > 0 ? 1 : 0
-  name  = "${local.name}-ecs-exec-keycloak-secrets"
+resource "aws_iam_role_policy" "ecs_task_execution_secrets" {
+  count = length(local.ecs_execution_secret_arns) > 0 ? 1 : 0
+  name  = "${local.name}-ecs-exec-secrets"
   role  = aws_iam_role.ecs_task_execution.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = concat(
-      length(local.keycloak_execution_sm_arns) > 0 ? [
+      length(local.ecs_execution_sm_arns) > 0 ? [
         {
           Effect   = "Allow"
           Action   = ["secretsmanager:GetSecretValue"]
-          Resource = local.keycloak_execution_sm_arns
+          Resource = local.ecs_execution_sm_arns
         }
       ] : [],
-      length(local.keycloak_execution_ssm_arns) > 0 ? [
+      length(local.ecs_execution_ssm_arns) > 0 ? [
         {
           Effect   = "Allow"
           Action   = ["ssm:GetParameters"]
-          Resource = local.keycloak_execution_ssm_arns
+          Resource = local.ecs_execution_ssm_arns
         }
       ] : [],
     )
@@ -69,8 +69,8 @@ resource "aws_iam_role_policy" "ecs_task_execution_keycloak_secrets" {
 
   lifecycle {
     precondition {
-      condition     = length(local.keycloak_execution_sm_arns) > 0 || length(local.keycloak_execution_ssm_arns) > 0
-      error_message = "keycloak_admin_password_secret_arn and keycloak_db_password_secret_arn must be arn:aws:secretsmanager:... or arn:aws:ssm:... so the execution role can read them."
+      condition     = length(local.ecs_execution_sm_arns) > 0 || length(local.ecs_execution_ssm_arns) > 0
+      error_message = "Secret ARNs must be arn:aws:secretsmanager:... or arn:aws:ssm:... so the execution role can read them."
     }
   }
 }
@@ -84,7 +84,7 @@ check "keycloak_db_username_when_jdbc" {
 
 check "keycloak_db_password_when_jdbc" {
   assert {
-    condition = trimspace(var.keycloak_db_url) == "" || trimspace(var.keycloak_db_password_secret_arn) != "" || trimspace(var.keycloak_db_password) != ""
+    condition     = trimspace(var.keycloak_db_url) == "" || trimspace(var.keycloak_db_password_secret_arn) != "" || trimspace(var.keycloak_db_password) != ""
     error_message = "Set keycloak_db_password or keycloak_db_password_secret_arn when keycloak_db_url is non-empty."
   }
 }
@@ -203,5 +203,50 @@ resource "aws_ecs_service" "keycloak" {
 
   tags = {
     Name = "${local.name}-keycloak-service"
+  }
+}
+
+resource "aws_ecs_task_definition" "backend" {
+  family                   = "${local.name}-backend-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = var.backend_task_cpu
+  memory                   = var.backend_task_memory
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+
+  container_definitions = jsonencode([local.backend_container_definition])
+
+  tags = {
+    Name = "${local.name}-backend-task"
+  }
+}
+
+resource "aws_ecs_service" "backend" {
+  name            = "${local.name}-backend-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.backend.arn
+  desired_count   = var.backend_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.backend.arn
+    container_name   = "${local.name}-backend"
+    container_port   = var.backend_container_port
+  }
+
+  depends_on = [
+    aws_lb_listener.http,
+    aws_lb_listener.https,
+    aws_lb_listener_rule.backend_host,
+  ]
+
+  tags = {
+    Name = "${local.name}-backend-service"
   }
 }

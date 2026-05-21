@@ -48,6 +48,16 @@ output "ecs_cluster_name" {
 }
 
 output "ecs_service_name" {
-  description = "ECS service name."
+  description = "ECS service name (frontend)."
   value       = aws_ecs_service.main.name
+}
+
+output "ecs_backend_service_name" {
+  description = "ECS service name (Spring Boot backend)."
+  value       = aws_ecs_service.backend.name
+}
+
+output "backend_host_header" {
+  description = "Public hostname for the Spring API (ALB host rule)."
+  value       = var.backend_host_header
 }

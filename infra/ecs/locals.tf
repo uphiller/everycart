@@ -1,7 +1,11 @@
 locals {
   name = var.project_name
 
-  alb_hostnames = distinct(compact([var.alb_host_header, var.keycloak_host_header]))
+  alb_hostnames = distinct(compact([
+    var.alb_host_header,
+    var.keycloak_host_header,
+    var.backend_host_header,
+  ]))
 
   acm_primary_domain = trimspace(var.acm_primary_domain) != "" ? var.acm_primary_domain : local.alb_hostnames[0]
   acm_subject_alternative_names = [
@@ -28,12 +32,26 @@ locals {
     var.keycloak_db_password_secret_arn,
   ]))
 
-  keycloak_execution_sm_arns = [
-    for arn in local.keycloak_execution_secret_arns : arn if startswith(arn, "arn:aws:secretsmanager:")
+  backend_db_password_secret_arn_effective = trimspace(var.backend_db_password_secret_arn) != "" ? trimspace(var.backend_db_password_secret_arn) : trimspace(var.keycloak_db_password_secret_arn)
+
+  backend_keycloak_admin_password_secret_arn_effective = trimspace(var.backend_keycloak_admin_password_secret_arn) != "" ? trimspace(var.backend_keycloak_admin_password_secret_arn) : trimspace(var.keycloak_admin_password_secret_arn)
+
+  backend_execution_secret_arns = distinct(compact([
+    local.backend_db_password_secret_arn_effective,
+    local.backend_keycloak_admin_password_secret_arn_effective,
+  ]))
+
+  ecs_execution_secret_arns = distinct(compact(concat(
+    local.keycloak_execution_secret_arns,
+    local.backend_execution_secret_arns,
+  )))
+
+  ecs_execution_sm_arns = [
+    for arn in local.ecs_execution_secret_arns : arn if startswith(arn, "arn:aws:secretsmanager:")
   ]
 
-  keycloak_execution_ssm_arns = [
-    for arn in local.keycloak_execution_secret_arns : arn if startswith(arn, "arn:aws:ssm:")
+  ecs_execution_ssm_arns = [
+    for arn in local.ecs_execution_secret_arns : arn if startswith(arn, "arn:aws:ssm:")
   ]
 
   keycloak_ecs_plain_env_admin_password = trimspace(var.keycloak_admin_password_secret_arn) == "" ? [
@@ -56,6 +74,10 @@ locals {
       {
         name  = "KC_DB_USERNAME"
         value = var.keycloak_db_username
+      },
+      {
+        name  = "KC_DB_SCHEMA"
+        value = var.keycloak_db_schema
       },
     ],
     trimspace(var.keycloak_db_password_secret_arn) == "" ? [
@@ -117,5 +139,60 @@ locals {
       }
     },
     length(local.keycloak_ecs_secrets) > 0 ? { secrets = local.keycloak_ecs_secrets } : {},
+  )
+
+  backend_db_password_effective = trimspace(var.backend_db_password) != "" ? var.backend_db_password : var.keycloak_db_password
+
+  backend_ecs_plain_env = concat(
+    [
+      { name = "SPRING_PROFILES_ACTIVE", value = var.backend_spring_profiles_active },
+      { name = "KEYCLOAK_ADMIN_USERNAME", value = var.keycloak_admin_username },
+      { name = "EVERYCART_KEYCLOAK_USER_CLIENT_ID", value = var.backend_keycloak_user_client_id },
+    ],
+    local.backend_db_password_secret_arn_effective == "" && trimspace(local.backend_db_password_effective) != "" ? [
+      { name = "backend_java_db_password", value = local.backend_db_password_effective },
+    ] : [],
+    local.backend_keycloak_admin_password_secret_arn_effective == "" && trimspace(var.keycloak_admin_password) != "" ? [
+      { name = "KEYCLOAK_ADMIN_PASSWORD", value = var.keycloak_admin_password },
+    ] : [],
+  )
+
+  backend_ecs_secrets = concat(
+    local.backend_db_password_secret_arn_effective != "" ? [
+      {
+        name      = "backend_java_db_password"
+        valueFrom = local.backend_db_password_secret_arn_effective
+      },
+    ] : [],
+    local.backend_keycloak_admin_password_secret_arn_effective != "" ? [
+      {
+        name      = "KEYCLOAK_ADMIN_PASSWORD"
+        valueFrom = local.backend_keycloak_admin_password_secret_arn_effective
+      },
+    ] : [],
+  )
+
+  backend_container_definition = merge(
+    {
+      name      = "${local.name}-backend"
+      image     = var.backend_container_image
+      essential = true
+      portMappings = [
+        {
+          containerPort = var.backend_container_port
+          protocol      = "tcp"
+        }
+      ]
+      environment = local.backend_ecs_plain_env
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "backend"
+        }
+      }
+    },
+    length(local.backend_ecs_secrets) > 0 ? { secrets = local.backend_ecs_secrets } : {},
   )
 }
