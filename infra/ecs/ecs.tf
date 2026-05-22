@@ -184,6 +184,9 @@ resource "aws_ecs_service" "keycloak" {
   desired_count   = var.keycloak_desired_count
   launch_type     = "FARGATE"
 
+  # Keycloak cold start can exceed 2 minutes; avoid ALB health checks killing tasks too early.
+  health_check_grace_period_seconds = 300
+
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs_tasks.id]

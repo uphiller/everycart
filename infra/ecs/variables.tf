@@ -115,13 +115,13 @@ variable "keycloak_container_port" {
 variable "keycloak_task_cpu" {
   type        = number
   description = "Fargate CPU units for Keycloak task."
-  default     = 512
+  default     = 1024
 }
 
 variable "keycloak_task_memory" {
   type        = number
   description = "Fargate memory (MB) for Keycloak task."
-  default     = 1024
+  default     = 2048
 }
 
 variable "keycloak_desired_count" {
